@@ -2,7 +2,6 @@ import os
 import argparse
 import datetime
 import time
-import pdb
 import requests
 import configparser
 import webbrowser
@@ -35,7 +34,6 @@ No config file was found. We'll make one for you.
 
     with open('config.ini', 'w') as f:
         config.write(f)
-
     
 config.read('config.ini')
 
@@ -46,7 +44,6 @@ can't do anything yet. Please follow the instructions in README.md to get
 those, set them in the config file, and then run this again.
 ''')
 
-
 elif not config['main'].get('access_token'):
     print('''
 No access token is set in the config file, so we'll have to request one.
@@ -54,7 +51,6 @@ Next, we'll open the Moves app authorization page in your web browser. Follow
 the instructions there to get your auth code, and once you get that, copy it
 and paste it into the next prompt.
 ''')
-
     input("Press any key to continue or 'q' to quit.")
 
     url = "https://api.moves-app.com/oauth/v1/authorize?response_type=code&client_id=" + config['main']['client_id'] + "&scope=activity%20location"
@@ -69,7 +65,6 @@ and paste it into the next prompt.
 
         with open('config.ini', 'w') as f:
             config.write(f)
-
 
 if config['main'].get('access_token'):
     startDate = datetime.datetime.strptime(args.startDate, "%Y-%m-%d")
@@ -90,7 +85,7 @@ if config['main'].get('access_token'):
             first = False
         else:
             time.sleep(int(args.waitTime))
-        
+
         currentDate = (startDate + datetime.timedelta(days = i - 1)).strftime("%Y-%m-%d")
         r = requests.get('https://api.moves-app.com/api/v1/user/storyline/daily/' + currentDate, {'trackPoints': 'true', 'access_token': config['main']['access_token']})
 
@@ -112,4 +107,4 @@ if config['main'].get('access_token'):
     output.write(gpx)
     output.close()
 
-    print("Done!")
+    print("GPX saved to " + args.outfile)
