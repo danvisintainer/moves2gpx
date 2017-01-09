@@ -1,6 +1,7 @@
 import os
 import argparse
 import datetime
+import time
 import pdb
 import requests
 import configparser
@@ -17,6 +18,8 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument("-s", "--start", dest="startDate", help="Start date in range", default=datetime.date.today().strftime("%Y-%m-%d"))
 parser.add_argument("-e", "--end", dest="endDate", help="End date in range", default=datetime.date.today().strftime("%Y-%m-%d"))
+parser.add_argument("-o", "--output", dest="outfile", help="Filename to save the GPX to", default="out.gpx")
+parser.add_argument("-w", "--wait", dest="waitTime", help="Seconds to wait between API calls", default=0)
 
 args = parser.parse_args()
 config = configparser.RawConfigParser()
@@ -81,7 +84,13 @@ if config['main'].get('access_token'):
         <trkseg>
 '''
 
+    first = True
     for i in tqdm(range(delta.days + 1)):
+        if first:
+            first = False
+        else:
+            time.sleep(int(args.waitTime))
+        
         currentDate = (startDate + datetime.timedelta(days = i - 1)).strftime("%Y-%m-%d")
         r = requests.get('https://api.moves-app.com/api/v1/user/storyline/daily/' + currentDate, {'trackPoints': 'true', 'access_token': config['main']['access_token']})
 
@@ -99,7 +108,7 @@ if config['main'].get('access_token'):
 
     gpx += '\t\t</trkseg>\n\t</trk>\n</gpx>'
 
-    output = open('out.gpx', 'w')
+    output = open(args.outfile, 'w')
     output.write(gpx)
     output.close()
 
