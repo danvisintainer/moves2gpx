@@ -8,12 +8,15 @@ import webbrowser
 from tqdm import tqdm
 
 def make_gpx_line(lat, lon, time):
-    return '\t\t<trkpt lat="{}" lon="{}"><time>{}</time></trkpt>\n'.format(lat, lon, time)
+    return '\t\t\t<trkpt lat="{}" lon="{}"><time>{}</time></trkpt>\n'.format(lat, lon, gpx_time(time))
+
+def gpx_time(time):
+    return datetime.datetime.strptime(time, '%Y%m%dT%H%M%SZ').strftime('%Y-%m-%dT%H:%M:%SZ')
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument("-s", "--start", dest="startDate", help="write report to FILE", default=datetime.date.today().strftime("%Y-%m-%d"))
-parser.add_argument("-e", "--end", dest="endDate", help="write report to FILE", default=datetime.date.today().strftime("%Y-%m-%d"))
+parser.add_argument("-s", "--start", dest="startDate", help="Start date in range", default=datetime.date.today().strftime("%Y-%m-%d"))
+parser.add_argument("-e", "--end", dest="endDate", help="End date in range", default=datetime.date.today().strftime("%Y-%m-%d"))
 
 args = parser.parse_args()
 config = configparser.RawConfigParser()
@@ -73,9 +76,9 @@ if config['main'].get('access_token'):
     gpx = '''
 <?xml version="1.0"?>
 <gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-<trk>
-    <name>output</name>
-    <trkseg>
+    <trk>
+        <name>output</name>
+        <trkseg>
 '''
 
     for i in tqdm(range(delta.days + 1)):
@@ -84,16 +87,17 @@ if config['main'].get('access_token'):
 
         r = r.json()
 
-        for segment in r[0]['segments']:
-            if segment['type'] == 'place':
-                gpx += make_gpx_line(segment['place']['location']['lat'], segment['place']['location']['lon'], segment['startTime'])
-                gpx += make_gpx_line(segment['place']['location']['lat'], segment['place']['location']['lon'], segment['endTime'])
-            elif segment['type'] == 'move':
-                for activity in segment['activities']:
-                    for point in activity['trackPoints']:
-                        gpx += make_gpx_line(point['lat'], point['lon'], point['time'])
+        if r[0] and 'segments' in r[0] and r[0]['segments'] is not None:
+            for segment in r[0]['segments']:
+                if segment['type'] == 'place':
+                    gpx += make_gpx_line(segment['place']['location']['lat'], segment['place']['location']['lon'], segment['startTime'])
+                    gpx += make_gpx_line(segment['place']['location']['lat'], segment['place']['location']['lon'], segment['endTime'])
+                elif segment['type'] == 'move':
+                    for activity in segment['activities']:
+                        for point in activity['trackPoints']:
+                            gpx += make_gpx_line(point['lat'], point['lon'], point['time'])
 
-    gpx += '\t</trk>\n</gpx>'
+    gpx += '\t\t</trkseg>\n\t</trk>\n</gpx>'
 
     output = open('out.gpx', 'w')
     output.write(gpx)
